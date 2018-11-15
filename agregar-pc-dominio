@@ -1,0 +1,145 @@
+REM GOMNOVBRA
+
+'objeto para obtener el nombre de usuario actual
+set net = WScript.CreateObject("WSCript.Network")
+'objeto para los inputbox
+Set WSHShell = WScript.CreateObject("WScript.Shell")
+
+'Definiciones por defecto
+pcDef = "testprep"
+domDef = "lab.dominio.local"
+OUDef = "OU=PCs"
+userDef = Net.UserName
+userLocalDef = "Administrator"
+
+'inputbox PC
+pc = InputBox("introduzca el HOSTNAME del PC", _
+"Introducir hostname del PC",pcDef)
+
+'saliendo por no poner ningún hostname
+If pc = "..." or pc = "" Then
+WScript.Echo "no se indicó ningún hostname, saliendo..."
+WScript.Quit()
+End If
+
+'check pc
+wscript.echo "PC: " & pc
+
+'revisando que se llega al PC
+If Ping(pc) = False then
+wscript.Echo pc & " no responde a PING..."
+Wscript.Quit()
+end If
+
+'inputbox Dominio
+dominio = InputBox("introduzca el DOMINIO (formato DNS) " & _
+"al que debe pertenecer " & pc, _
+"Introducir dominio para " & pc,domDef)
+
+'saliendo por no poner dominio
+If dominio = "..." or dominio = "" Then
+WScript.Echo "no se indicó ningún dominio, saliendo..."
+WScript.Quit()
+End If
+
+'comprobar que se introdujeron "." con el nombre de dominio
+If Instr(dominio, ".") = 0 Then 
+wscript.echo "el dominio debe estar indicado como " & _
+"subdominio.dominio - Ejemplo: es.prueba.com"
+wscript.Quit()
+End If
+
+'check dominio
+wscript.echo "Dominio: " & dominio
+
+
+' Introducir OU
+ou = InputBox("introduzca la OU: Ej: OU=Workstations," & _
+"OU=Standard","Introducir OU",OUDef)
+
+'pedir usuario dominio / por defecto, poner el nombre
+'de usuario actual en el inputbox
+user = InputBox("introduzca un usuario con permisos para " & _
+"agregar " & pc & " al dominio " & dominio, _
+"Introducir usuario de DOMINIO",userDef)
+
+'pedir password
+msg=MsgBox("introducir el password en la consola luego de " &_
+"este mensaje",0,"password en consola")
+Set objPassword = CreateObject("ScriptPW.Password") 
+WScript.StdOut.Write "Contraseña para " & user & " (DOMINIO):"
+pass = objPassword.GetPassword() 
+
+'pedir admin local pc
+userLocal = InputBox("introduzca un usuario con permisos " & _
+"LOCALES en " & pc & " (por ejemplo el " & _
+"administrador local ","Introducir usuario LOCAL" _
+,userLocalDef)
+
+'pedir password usuario local
+msg=MsgBox("introducir el password para el usuario LOCAL " & _
+"de " & pc & " en la consola luego de este " & _
+"mensaje",0,"password en consola de usuario LOCAL")
+
+Set objPassword = CreateObject("ScriptPW.Password") 
+WScript.StdOut.Write VbCrLf & "Contraseña para " & _
+userLocal & " (LOCAL):" 
+passLocal = objPassword.GetPassword() 
+
+' confirmar datos
+confirmar=MsgBox("¿Son los siguientes datos correctos?" & _
+VbCrLf & VbCrLf & "PC: " & pc & VbCrLf & _
+"Dominio: " & dominio & " (" & ou & ")" & VbCrLf & _
+"Usuario Dominio: " & user & VbCrLf & _
+"Usuario Local: " & userLocal & VbCrLf _
+,1,"Confirmar datos")
+
+if confirmar = 2 then
+msg=MsgBox("proceso cancelado",0,"Cancelado")
+wscript.quit()
+end if 
+
+reiniciar = MsgBox("¿Desea reiniciar " & pc & _
+" luego de agregarlo a dominio?" & VbCrLf & _
+VbCrLf & "(Es Necesario, " & _
+"pero quizas es conveniente mas tarde)",4, _
+"¿Reiniciar?")
+
+Set objShell = CreateObject("WScript.Shell")
+if reiniciar = 1 then
+strCmdNetDom = "%comspec% /c netdom join " & pc & _
+" /Domain:" & dominio & _
+" /userD:" & user & _
+" /passwordD:" & pass & _
+" /OU:" & ou & _
+" /userO:" & userLocal & _
+" /PasswordO:" & passLocal & _
+" /reboot"
+else
+strCmdNetDom = "%comspec% /c netdom join " & pc & _
+" /Domain:" & dominio & _
+" /userD:" & user & _
+" /passwordD:" & pass & _
+" /OU:" & ou & _
+" /userO:" & userLocal & _
+" /PasswordO:" & passLocal
+End if
+
+Set objExecObj = objShell.Exec(strCmdNetDom)
+strResNetDom = objExecObj.StdOut.ReadAll() 
+
+resultado = MsgBox ("Resultado" & vbcrlf & strResNetDom)
+
+' Función para hacer Ping
+Function Ping(pc)
+Set objShell = CreateObject("WScript.Shell")
+strCmdPing = "%comspec% /c ping -n 1 " & pc & ""
+Set objExecObj = objShell.Exec(strCmdPing) 
+strResPing = objExecObj.StdOut.ReadAll() 
+
+If Instr(strResPing, "Respuesta") > 0 Then 
+Ping = True
+Else
+Ping = False
+End If
+End Function
