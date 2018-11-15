@@ -1,0 +1,22 @@
+Set ws = WScript.CreateObject("WScript.Shell")
+Do
+Valor = InputBox("Ingrese nombre pc", "Ingreso nombre pc")
+Loop while len(Valor)>15
+
+MsgBox "Nuevo nombre del pc:" &Valor
+strComputer = "."
+Set objWMIService = GetObject("winmgmts:" _
+    & "{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
+
+Set colComputers = objWMIService.ExecQuery _
+    ("Select * from Win32_ComputerSystem")
+
+For Each objComputer in colComputers
+    err = objComputer.Rename(Valor)
+Next
+B
+Sub B
+If MsgBox("Quieres reiniciar el equipo para que los cambios? " , vbQuestion + vbYesNo + vbDefaultButton, "Reiniciar el equipo") =6 Then 
+ws.Run "shutdown -r -t 0"
+End If
+End Sub
