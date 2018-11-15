@@ -1,5 +1,3 @@
-REM GOMNOVBRA
-
 'objeto para obtener el nombre de usuario actual
 set net = WScript.CreateObject("WSCript.Network")
 'objeto para los inputbox
